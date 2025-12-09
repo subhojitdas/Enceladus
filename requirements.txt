@@ -2,3 +2,5 @@ torch
 huggingface_hub
 tokenizers
 numpy
+safetensors
+tqdm
