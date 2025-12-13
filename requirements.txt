@@ -4,3 +4,4 @@ tokenizers
 numpy
 safetensors
 tqdm
+pillow

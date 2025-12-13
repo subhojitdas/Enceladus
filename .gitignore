@@ -1,2 +1,3 @@
 .idea
 src/qwen_n/Qwen3-0.6B/
+src/qwen_n/__pycache__/
