@@ -1,6 +1,11 @@
-
+from pathlib import Path
+import os
+import json
 import torch
 import torch.nn as nn
+from huggingface_hub import hf_hub_download, snapshot_download
+from safetensors.torch import load_file
+
 
 def apply_rope(x, cos, sin):
     # x: bsz, num_heads, seq_len, head_dim
@@ -307,3 +312,32 @@ def load_weights_into_qwen(model, param_config, params):
     else:
         model.out_head.weight = model.tok_emb.weight
         print("Model uses weight tying.")
+
+
+def load_weight(model, device, qwen3_config, choose_model):
+    repo_id = f"Qwen/Qwen3-{choose_model}"
+    local_dir = Path(repo_id).parts[-1]
+
+    if choose_model == "0.6B":
+        weights_file = hf_hub_download(
+            repo_id=repo_id,
+            filename="model.safetensors",
+            local_dir=local_dir,
+            token="<hf token>",
+        )
+        weights_dict = load_file(weights_file)
+    else:
+        repo_dir = snapshot_download(repo_id=repo_id, local_dir=local_dir)
+        index_path = os.path.join(repo_dir, "model.safetensors.index.json")
+        with open(index_path, "r") as f:
+            index = json.load(f)
+
+        weights_dict = {}
+        for filename in set(index["weight_map"].values()):
+            shard_path = os.path.join(repo_dir, filename)
+            shard = load_file(shard_path)
+            weights_dict.update(shard)
+
+    load_weights_into_qwen(model, qwen3_config, weights_dict)
+    model.to(device)
+    del weights_dict
